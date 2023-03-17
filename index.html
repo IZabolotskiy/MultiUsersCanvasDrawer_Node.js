@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Canvas Drawing App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <style>
+      canvas {
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="500" height="500"></canvas>
+	<script>
+  const canvas = document.getElementById('canvas');
+  const context = canvas.getContext('2d');
+  const socket = io.connect('http://localhost:3005');
+let isDrawing = false;
+let lastX, lastY;
+
+canvas.addEventListener('mousedown', (e) => {
+isDrawing = true;
+[lastX, lastY] = [e.offsetX, e.offsetY];
+});
+
+canvas.addEventListener('mousemove', (e) => {
+if (!isDrawing) return;
+const [x, y] = [e.offsetX, e.offsetY];
+context.beginPath();
+context.moveTo(lastX, lastY);
+context.lineTo(x, y);
+context.strokeStyle = "#000000";
+context.stroke();
+[lastX, lastY] = [x, y];
+const data = {
+  x: x,
+  y: y,
+  lastX: lastX,
+  lastY: lastY,
+  color: context.strokeStyle,
+  lineWidth: context.lineWidth
+};
+socket.emit('draw', data);
+});
+
+canvas.addEventListener('mouseup', () => {
+isDrawing = false;
+});
+
+socket.on('draw', (data) => {
+context.beginPath();
+context.moveTo(data.lastX, data.lastY);
+context.lineTo(data.x+1, data.y+1);
+context.strokeStyle = "#FF0000";
+context.lineWidth = data.lineWidth;
+context.stroke();
+});
+
+socket.on('init', (drawingData) => {
+if(drawingData!=null)
+drawingData.forEach((item) => {
+context.beginPath();
+context.moveTo(item.lastX, item.lastY);
+context.lineTo(item.x, item.y);
+context.strokeStyle = item.color;
+context.lineWidth = item.lineWidth;
+context.stroke();
+
+});
+});
+
+  </script>
+  </body>
+</html>
